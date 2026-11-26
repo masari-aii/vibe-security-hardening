@@ -152,7 +152,7 @@ table{{width:100%;border-collapse:collapse;font-size:13px}}th,td{{padding:8px;bo
 {compare}
 <section class="card findings"><h2>{t['findings']}</h2>{table}</section>
 <section class="card"><h2>{t['next']}</h2><ol>{steps}</ol></section>
-<section class="card"><h2>{t['method']}</h2><p>{html.escape(t['method_text'].format(url=(', live site ' if a.lang == 'en' else '، والموقع المباشر') if url else ''))}</p></section>
+<section class="card"><h2>{t['method']}</h2><p>{html.escape(t['method_text'].format(url=(', live site ' if a.lang == 'en' else '، والموقع المباشر') if url else '')).replace('vibe-security-hardening', '<bdi dir="ltr">vibe-security-hardening</bdi>').replace('Git', '<bdi dir="ltr">Git</bdi>')}</p></section>
 <footer>{html.escape(t['disclaimer'])} · vibe-security-hardening</footer>
 </div></body></html>"""
 

@@ -67,6 +67,16 @@ T = {
                digest="ملخص الأمان (آخر 24 ساعة)"),
 }
 
+AR_TYPES = {
+    "SQL injection": "حقن SQL", "XSS": "حقن سكربت (XSS)", "Probe for sensitive file": "محاولة الوصول لملف حساس",
+    "Path traversal": "تجاوز المسارات", "Brute-force login": "تخمين كلمات المرور", "Command injection": "حقن أوامر",
+    "Unauthorized access attempt (IDOR/admin)": "وصول غير مصرّح (IDOR/أدمن)", "SSRF": "طلب من الخادم (SSRF)",
+    "Template injection": "حقن القوالب", "Honeytoken used (credential leak)": "استخدام بيانات فخ (تسريب)",
+}
+
+def tname(t, lang):
+    return AR_TYPES.get(t, t) if lang == "ar" else t
+
 def bars(items, color="#2563eb"):
     if not items:
         return ""
@@ -78,20 +88,27 @@ def bars(items, color="#2563eb"):
     return f'<div class="bars">{rows}</div>'
 
 def timeline_svg(by_day):
+    """Bar per day with the count above each bar and the date under it (always LTR so dates read correctly)."""
     if not by_day:
         return ""
-    w, h, pad = 640, 140, 24
-    mx = max(v for _, v in by_day) or 1
     n = len(by_day)
-    bw = min((w - 2 * pad) / max(n, 1), 48)
-    rects = "".join(
-        f'<rect x="{pad + i * bw + 2:.1f}" y="{h - pad - (v / mx) * (h - 2 * pad):.1f}" width="{max(bw - 4, 2):.1f}" '
-        f'height="{(v / mx) * (h - 2 * pad):.1f}" rx="3" fill="#dc2626"><title>{d}: {v}</title></rect>'
-        for i, (d, v) in enumerate(by_day))
-    labels = f'<text x="{pad}" y="{h - 6}" font-size="11" fill="#64748b">{by_day[0][0]}</text>'
-    if n > 1:
-        labels += f'<text x="{pad + n * bw}" y="{h - 6}" font-size="11" fill="#64748b" text-anchor="end">{by_day[-1][0]}</text>'
-    return f'<div dir="ltr"><svg viewBox="0 0 {w} {h}" width="100%" role="img">{rects}{labels}</svg></div>'
+    pad_x, top, bottom = 16, 22, 34
+    bw = max(min((900 - 2 * pad_x) / n, 70), 14)
+    w = int(2 * pad_x + bw * n)
+    h = 220
+    mx = max(v for _, v in by_day) or 1
+    step = 1 if n <= 16 else (2 if n <= 32 else 7)
+    parts = []
+    for i, (d, v) in enumerate(by_day):
+        bh = (v / mx) * (h - top - bottom)
+        x = pad_x + i * bw
+        y = h - bottom - bh
+        parts.append(f'<rect x="{x + 3:.1f}" y="{y:.1f}" width="{bw - 6:.1f}" height="{bh:.1f}" rx="4" fill="#dc2626"><title>{d}: {v}</title></rect>')
+        parts.append(f'<text x="{x + bw / 2:.1f}" y="{y - 6:.1f}" font-size="12" text-anchor="middle" fill="currentColor">{v}</text>')
+        if i % step == 0:
+            parts.append(f'<text x="{x + bw / 2:.1f}" y="{h - 12}" font-size="11" text-anchor="middle" fill="#64748b">{d[5:]}</text>')
+    axis = f'<line x1="{pad_x}" y1="{h - bottom}" x2="{w - pad_x}" y2="{h - bottom}" stroke="#cbd5e1"/>'
+    return f'<div dir="ltr" style="overflow-x:auto"><svg viewBox="0 0 {w} {h}" width="{w}" height="{h}" style="max-width:100%;height:auto" role="img">{axis}{"".join(parts)}</svg></div>'
 
 def render(events, lang, brand, days):
     t = T[lang]
@@ -99,7 +116,7 @@ def render(events, lang, brand, days):
     rtl = lang == "ar"
     period = f"{events[0]['_t'].date()} → {events[-1]['_t'].date()}" if events else "-"
     rows = "".join(
-        f"<tr><td>{e['_t'].strftime('%Y-%m-%d %H:%M')}</td><td>{html.escape(str(e.get('type')))}</td>"
+        f"<tr><td>{e['_t'].strftime('%Y-%m-%d %H:%M')}</td><td>{html.escape(tname(str(e.get('type')), lang))}</td>"
         f"<td dir='ltr'>{html.escape(str(e.get('ip')))}</td><td>{html.escape(str(e.get('location')))}</td>"
         f"<td dir='ltr'><code>{html.escape(str(e.get('path', ''))[:70])}</code></td></tr>"
         for e in reversed(events[-50:]))
@@ -112,7 +129,7 @@ def render(events, lang, brand, days):
 </section>
 {"<p class='muted'>" + t['none'] + "</p>" if not events else ""}
 <section class="grid">
-  <div class="card"><h2>{t['by_type']}</h2>{bars(s['by_type'], '#dc2626')}</div>
+  <div class="card"><h2>{t['by_type']}</h2>{bars([(tname(k, lang), v) for k, v in s['by_type']], '#dc2626')}</div>
   <div class="card"><h2>{t['by_country']}</h2>{bars(s['by_country'], '#7c3aed')}</div>
   <div class="card"><h2>{t['top_ips']}</h2>{bars([(f"{ip} ({c})", n) for (ip, c), n in s['top_ips']], '#ea580c')}</div>
   <div class="card"><h2>{t['paths']}</h2>{bars(s['paths'], '#0891b2')}</div>
@@ -142,7 +159,7 @@ def digest(events, lang):
     recent = [e for e in events if e["_t"] >= now - dt.timedelta(hours=24)]
     s = summarize(recent)
     lines = [t["digest"], f"{t['total']}: {s['total']} | {t['ips']}: {s['ips']}", "", t["by_type"] + ":"]
-    lines += [f"  - {k}: {v}" for k, v in s["by_type"]]
+    lines += [f"  - {tname(k, lang)}: {v}" for k, v in s["by_type"]]
     lines += ["", t["top_ips"] + ":"] + [f"  - {ip} ({c}): {n}" for (ip, c), n in s["top_ips"][:5]]
     lines += ["", t["note"]]
     return "\n".join(lines), s["total"]

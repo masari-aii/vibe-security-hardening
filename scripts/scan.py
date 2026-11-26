@@ -12,7 +12,7 @@ live headers, cookies, CORS, HTTPS and exposed paths. Secret values are never pr
 """
 import argparse, json, os, re, shutil, subprocess, sys, ssl, urllib.request, urllib.error
 
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 SEV = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
 SKIP_DIRS = {".git", "node_modules", "vendor", "dist", "build", ".next", ".nuxt", ".output", "out", "coverage",
              "venv", ".venv", "env", "__pycache__", ".turbo", ".vercel", ".svelte-kit", "target", "bin", "obj", ".idea"}
