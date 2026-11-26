@@ -1,6 +1,6 @@
 ---
 name: "vibe-security-hardening"
-description: "Secure, encrypt, protect and monitor AI-built web apps: automated scanner, 27 controls, max-strength encryption, intrusion email alerts, AI/LLM security, stack playbooks, Saudi PDPL. Use for: أمّن موقعي، شفّر الموقع، فحص أمني، security check."
+description: "Secure, encrypt, protect and monitor AI-built web apps: scanner with safe fixes, IDOR tests, client report, 27 controls, encryption, intrusion alerts + dashboard, AI security, infra, Saudi PDPL/NCA. Use for: أمّن موقعي، فحص أمني، security check."
 ---
 
 # Vibe Security Hardening
@@ -17,23 +17,27 @@ Read a reference file only when its module applies (paths are relative to this s
 
 | File | Use when |
 |---|---|
-| `scripts/scan.py` + `references/scanner.md` | Always: automated scan in AUDIT and VERIFY; CI setup |
+| `scripts/scan.py` + `references/scanner.md` | Always: automated scan (code, history, deps, infra, live site), `--fix`, `--deep`, CI |
+| `scripts/authz_test.py` | Always when the app has logins: IDOR / admin-route tests (see `references/scanner.md`) |
+| `scripts/report.py` | End of every audit: branded client report (AR/EN, score, before/after, PDF) |
 | `references/stacks.md` | Always: fixes for the detected stack (Next.js, Supabase, Firebase, Vercel, Laravel, Django, Express, PHP/WordPress, mobile) |
 | `references/encryption.md` | Module E: sensitive data map, encryption, keys (tested code) |
 | `references/protection.md` | Module P: WAF/CDN, bots, admin MFA, backups, incident readiness |
-| `references/intrusion-alerts.md` | Module D: attack detection + email alerts with type, IP, location (tested code) |
+| `references/intrusion-alerts.md` + `scripts/guard.mjs` / `scripts/guard.py` / `scripts/alerts_dashboard.py` | Module D: attack detection, alerts (email, webhook, Telegram), dashboard and daily digest |
+| `references/infrastructure.md` | Module I: Docker, compose, nginx/Apache, Kubernetes, Terraform/cloud, CI/CD |
 | `references/ai-security.md` | Module A: the app uses LLMs, RAG, agents, tool calling or MCP |
 | `references/pdpl.md` | Module K: the app processes personal data of people in Saudi Arabia |
+| `references/nca-ecc.md` | Module N: Saudi government/CNI clients (NCA ECC-2:2024) or SAMA-regulated finance |
 | `templates/security-scan.yml` | GitHub Actions workflow that runs the scanner on every push |
 
 ## Workflow
 
 1. DETECT: stack (open the matching sections of `references/stacks.md`), framework, DB, auth provider, hosting, payment provider, upload paths, and build the sensitive data map (Module E). Read manifests and config first (package.json, requirements.txt, composer.json, .env.example, framework config, DB rules/policies, deploy config).
-2. AUDIT: run the scanner first (`python3 scripts/scan.py <project> [--url <own site>]`; if no shell, ask the user to run it and paste the output). Confirm each finding in the code. Then go through all 27 controls and modules E, P, D, plus A (AI apps) and K (Saudi personal data) when they apply. For each: PASS / FAIL / N/A with evidence (file:line). No evidence = not PASS.
+2. AUDIT: run the scanner first and save the baseline (`python3 scripts/scan.py <project> --json scan-before.json [--url <own site>]`; if no shell, ask the user to run it and paste the output). Confirm each finding in the code. Run `scripts/authz_test.py` against a local/staging copy with two normal users and an admin. Then go through all 27 controls and modules E, P, D, I, plus A (AI apps), K (Saudi personal data) and N (NCA/SAMA clients) when they apply. For each: PASS / FAIL / N/A with evidence (file:line). No evidence = not PASS.
 3. PLAN: list FAIL items by severity (Critical > High > Medium > Low). Critical = exposed secret, open DB, auth bypass, injection, client-trusted price, sensitive data stored in plaintext.
-4. FIX: smallest targeted diff per item. Preserve working functionality. Use the framework's built-in security feature before adding a library. Never weaken a control to make a test pass.
-5. VERIFY: re-test each fix (control 27), rerun the scanner until no critical/high findings remain, run build and existing tests. Offer the CI workflow so the scan runs on every push.
-6. REPORT: output the report format below.
+4. FIX: run `scan.py --fix` for the safe mechanical fixes, then the smallest targeted diff per remaining item. Preserve working functionality. Use the framework's built-in security feature before adding a library. Never weaken a control to make a test pass.
+5. VERIFY: re-test each fix (control 27), rerun the scanner (`--json scan-after.json`) and authz tests until no critical/high findings remain, run build and existing tests. Offer the CI workflow so the scan runs on every push.
+6. REPORT: output the report format below, and generate the client report: `python3 scripts/report.py scan-after.json --baseline scan-before.json --authz <authz json> --lang ar|en [--brand ... --logo ... --pdf]`.
 
 Ask the user only when blocked: missing credentials, production access, or an irreversible action (key rotation, Git history rewrite, DB migration on live data). Otherwise proceed with safe defaults.
 
@@ -84,6 +88,9 @@ Ask the user only when blocked: missing credentials, production access, or an ir
 - Module P — Active protection (`references/protection.md`): CDN/WAF and DDoS, bot challenge, admin MFA and allow-list, breached-password blocking, tested backups, incident kill switch, signed private media. Items P1–P7.
 - Module D — Intrusion detection and email alerts (`references/intrusion-alerts.md`): detect SQLi/XSS/traversal/command injection/SSRF, probes for `.env`/`.git`, brute force, IDOR attempts, honeytokens; block and email the attack type, time, IP, approximate location, path and action, throttled, secrets masked. Items D1–D9.
 - Module A — AI application security (`references/ai-security.md`), OWASP GenAI LLM Top 10 2026: prompt injection, data disclosure, excessive agency and MCP tools, supply chain, poisoning, cost limits, misinformation, hidden context exposure, vector store isolation, output handling. Items A1–A11.
+- Module I — Infrastructure (`references/infrastructure.md`): containers, compose, web server, Kubernetes, Terraform/cloud IAM and network exposure, CI/CD pipeline hardening. Items I1–I6 (also checked by the scanner).
+- Module Z — Authorization tests (`scripts/authz_test.py`): IDOR (Z3), broken admin role checks (Z2), unauthenticated access (Z1).
+- Module N — NCA ECC-2:2024 and SAMA CSF (`references/nca-ecc.md`): map skill evidence to the four ECC domains / SAMA domains; organizational controls flagged out of scope.
 - Module S — Stack playbooks (`references/stacks.md`): concrete config and code fixes per framework/platform.
 - Module K — Saudi PDPL (`references/pdpl.md`): data inventory, consent, Arabic privacy notice, rights flows, retention, 72-hour breach notification to SDAIA, cross-border transfers, processors, DPO/registration. Items K1–K12.
 
@@ -95,9 +102,11 @@ Stack: ...
 Summary: X pass / Y fixed / Z open / N n-a
 
 | # | Control | Status | Severity | Evidence (file:line) | Fix applied | Verification |
-(27 core rows, then E1–E9, P1–P7, D1–D9, and A1–A11 / K1–K12 when they apply)
+(27 core rows, then E1–E9, P1–P7, D1–D9, I1–I6, Z, and A1–A11 / K1–K12 / N when they apply)
 
 Scanner: command run, counts before → after, remaining findings with reason
+Authz: checks run, failures (IDOR / admin / unauthenticated) and fixes
+Client report: file name, score before → after
 
 Encryption summary: sensitive data map (field → class → treatment), algorithm, key storage, rotation plan, key backup status
 Protection summary: WAF/CDN, bot protection, admin MFA, backups, incident plan
@@ -113,4 +122,4 @@ Rules for the report: every FIXED row names the changed file and the test that p
 
 ## Use as a plain prompt (models without skill support)
 
-Paste `ALL-IN-ONE.md` (this file plus every reference, in one document) as the system or first message, then: "Apply the full hardening workflow to my project. Stack: <...>. Here are the files: <...>"
+Paste `ALL-IN-ONE.md` (this file, every reference and the scanner, in one document; other scripts are in the repository: https://github.com/masari-aii/vibe-security-hardening) as the system or first message, then: "Apply the full hardening workflow to my project. Stack: <...>. Here are the files: <...>"
