@@ -1,0 +1,22 @@
+# Module K — Saudi PDPL compliance (technical checklist)
+
+Apply when the site processes personal data of people in Saudi Arabia. The PDPL applies to entities in the Kingdom and to entities outside it that process personal data of individuals in the Kingdom. Regulator: SDAIA. This module turns legal duties into engineering tasks; it is not legal advice. Have a qualified advisor confirm current obligations, especially for health, financial (SAMA) or government (NCA) contexts, which add sector rules.
+
+Status note (re-check before relying on it): SDAIA ran a public consultation (October to 5 November 2026) on amendments to the Implementing Regulations, proposing data localisation, breach notification within 72 hours in all cases, stricter DPIA/DPO/registration duties and Arabic privacy policies. Build to the stricter proposed standard where it is cheap to do so.
+
+- K1. Data inventory: a record of processing (what personal data, where stored, why, legal basis, retention, who can access, which vendors receive it). Reuse the Module E sensitive data map.
+- K2. Legal basis and consent: store consent records (user, timestamp, policy version, purpose, channel); separate, unticked consent for marketing; withdrawing consent as easy as giving it; stop processing on withdrawal.
+- K3. Privacy notice: shown before or at collection, available in Arabic (and other languages you serve): purposes, data categories, retention, recipients and transfers, rights and how to exercise them, contact (DPO if appointed).
+- K4. Data subject rights: in-app or verified-request flows to access/receive a copy (readable export), correct, and delete/destroy personal data; verify identity first; log each request and response date; respond within the deadline in the Implementing Regulations (confirm the current period).
+- K5. Minimization and retention: collect only fields you use; retention period per data class; scheduled job that deletes or anonymizes expired data, including backups on rotation, logs and embeddings (A9).
+- K6. Security: the 27 controls plus Modules E, P, D are the technical safeguards; restrict staff access by role and log access to personal data.
+- K7. Breach response: when a breach may harm data subjects, notify SDAIA within 72 hours of becoming aware (through the National Data Governance Portal) and notify affected individuals without undue delay. Engineering: Module D alerts record the "first aware" timestamp; a runbook with owner, SDAIA submission template (what happened, data categories, number affected, measures taken, contact), and a user notification template in Arabic. Under the proposed amendments the 72-hour duty would apply to every breach regardless of harm: plan for that.
+- K8. Cross-border transfers: list every place personal data leaves the Kingdom: hosting region, database/backup region, email/SMS providers, analytics, error tracking, CDNs and AI model APIs. Transfers are governed by the Regulation on Personal Data Transfer outside the Kingdom (2024) with tools such as Standard Contractual Clauses, plus SDAIA's transfer risk-assessment guideline (2025). Prefer in-Kingdom hosting regions for databases and backups, minimize/redact data sent to foreign APIs, and document the transfer basis. The proposed amendments would add a general in-Kingdom storage requirement.
+- K9. Processors: data processing agreements with every vendor that touches personal data; vendor list kept current.
+- K10. Governance: check whether you must register in the National Register of Controllers and appoint a Personal Data Protection Officer under SDAIA's rules; run a DPIA for high-risk processing (sensitive data, large scale, profiling, new tech such as AI on personal data).
+- K11. Direct marketing: prior consent, clear sender identity, one-click unsubscribe honored promptly.
+- K12. Training and records: staff who handle personal data are trained; keep evidence (policies, consent logs, DPIAs, breach log) ready for SDAIA.
+
+Report section: a K1–K12 table with Done / Partial / Missing / Needs legal confirmation, plus the list of data flows leaving the Kingdom.
+
+Sources: SDAIA PDPL and Implementing Regulations (2023); Regulation on Personal Data Transfer outside the Kingdom (Sept 2024) and Standard Contractual Clauses; SDAIA transfer risk assessment guideline (Feb 2025); SDAIA draft amendments consultation (Oct 2026). Verify the current texts on sdaia.gov.sa and dgp.sdaia.gov.sa.
