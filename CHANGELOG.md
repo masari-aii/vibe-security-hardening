@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.0 — 2026-11-26
+- Screenshots gallery (Arabic and English): scanner before/after, authorization tests, client report before/after, alerts dashboard, workflow diagram, with a guide to reading each chart.
+- Sample client reports as PDF in `docs/`.
+- Alerts dashboard: daily chart now shows the count above each bar and the date under it; Arabic attack-type names in the Arabic dashboard and digest.
+- Report: correct direction for English names inside Arabic text.
+- README: complete feature list.
+
 ## 3.0.0 — 2026-11-26
 - Client report generator `scripts/report.py`: branded HTML/PDF, Arabic RTL or English, security score and grade, before/after comparison, authz and manual findings merge.
 - Authorization tester `scripts/authz_test.py`: IDOR, broken admin role, unauthenticated access; local-only by default, tokens from env.
