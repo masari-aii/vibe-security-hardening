@@ -12,6 +12,7 @@ live headers, cookies, CORS, HTTPS and exposed paths. Secret values are never pr
 """
 import argparse, json, os, re, shutil, subprocess, sys, ssl, urllib.request, urllib.error
 
+VERSION = "3.0.0"
 SEV = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
 SKIP_DIRS = {".git", "node_modules", "vendor", "dist", "build", ".next", ".nuxt", ".output", "out", "coverage",
              "venv", ".venv", "env", "__pycache__", ".turbo", ".vercel", ".svelte-kit", "target", "bin", "obj", ".idea"}
@@ -52,7 +53,8 @@ CODE = [
     ("C3", "Firebase rules open to everyone", r"allow\s+(read|write|read,\s*write)\s*:\s*if\s+true|\"\.(read|write)\"\s*:\s*true", "critical"),
     ("C15", "Cookie without security flags", r"(?i)(httpOnly|http_only)\s*[:=]\s*false|secure\s*:\s*false|SESSION_COOKIE_SECURE\s*=\s*False", "medium"),
     ("A1", "User input concatenated into LLM system prompt",
-     r"(?i)(role['\"]?\s*:\s*['\"]system['\"][^\n]{0,120}(\$\{|\+\s*req\.|\{req|request\.|body\.|input))|(system_prompt|systemPrompt)\s*[+=][^\n]{0,80}(req\.|request\.|body\.|user_input|userInput)", "high"),
+     r"(?i)role['\"]?\s*:\s*['\"]system['\"]\s*,\s*['\"]?content['\"]?\s*:\s*(`[^`]*\$\{[^}]*(req|request|body|input|user|query|params|message)[^}]*\}|[^,}\n]*\+\s*(req|request|body|input|user|message)\w*)"
+     r"|(system_prompt|systemPrompt|SYSTEM_PROMPT)\s*(\+=|=)[^\n]*(\+\s*|\$\{|\{)(req\.|request\.|body\.|user_input|userInput|input\b)", "high"),
 ]
 CODE = [(c, n, re.compile(p, re.M), s) for c, n, p, s in CODE]
 CODE_EXT = {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".vue", ".svelte", ".py", ".php", ".rb", ".go", ".java",
@@ -76,9 +78,9 @@ def mask(v):
     v = str(v)
     return ("…" + v[-4:]) if len(v) > 4 else "****"
 
-def iter_files(root):
+def iter_files(root, include_hidden_dirs=()):
     for dp, dns, fns in os.walk(root):
-        dns[:] = [d for d in dns if d not in SKIP_DIRS and not d.startswith(".cache")]
+        dns[:] = [d for d in dns if (d not in SKIP_DIRS or d in include_hidden_dirs) and not d.startswith(".cache")]
         for fn in fns:
             p = os.path.join(dp, fn)
             low = fn.lower()
@@ -123,7 +125,7 @@ def scan_files(root):
             for control, name, rx, sev in CODE:
                 for m in rx.finditer(text):
                     ln = text.count("\n", 0, m.start()) + 1
-                    add(control, sev, name, f"{rel}:{ln}", m.group(0)[:80].strip())
+                    add(control, sev, name, f"{rel}:{ln}", re.sub(r"\s+", " ", m.group(0)).strip()[:80])
         for m in PUBLIC_PREFIX.finditer(text):
             ln = text.count("\n", 0, m.start()) + 1
             add("C11", "critical", "Secret-looking variable exposed to the browser via public prefix", f"{rel}:{ln}", m.group(0))
@@ -134,6 +136,179 @@ def scan_files(root):
                 if not re.search(r"(?i)alter\s+table\s+[\"\w.]*" + re.escape(tn) + r"[\"]?\s+enable\s+row\s+level\s+security", text):
                     add("C3", "high", f"Table '{tn}' created without ENABLE ROW LEVEL SECURITY in this file", rel,
                         "verify RLS is enabled elsewhere, with policies per role")
+
+
+INFRA = [
+    # (file matcher regex, control, title, pattern, severity)
+    (r"(^|/)Dockerfile[^/]*$", "I1", "Container runs as root (no USER instruction)", None, "medium"),
+    (r"(^|/)Dockerfile[^/]*$", "I1", "Base image uses 'latest' or no tag", r"(?im)^\s*FROM\s+(?!scratch\b)[^\s:@]+(:latest)?\s*(AS\s+\w+)?\s*$", "low"),
+    (r"(^|/)Dockerfile[^/]*$", "I1", "Secret baked into image via ENV/ARG", r"(?im)^\s*(ENV|ARG)\s+\w*(SECRET|PASSWORD|PASSWD|TOKEN|API_KEY|PRIVATE_KEY)\w*[\s=]+\S+", "high"),
+    (r"(^|/)Dockerfile[^/]*$", "I1", "Remote script piped to shell during build", r"(?i)(curl|wget)[^\n|]*\|\s*(ba|z)?sh\b", "medium"),
+    (r"(^|/)Dockerfile[^/]*$", "I1", "ADD with remote URL (use COPY + verified download)", r"(?im)^\s*ADD\s+https?://", "low"),
+    (r"(^|/)(docker-)?compose[^/]*\.ya?ml$", "I2", "Privileged container", r"(?im)^\s*privileged:\s*true", "high"),
+    (r"(^|/)(docker-)?compose[^/]*\.ya?ml$", "I2", "Docker socket mounted into container", r"/var/run/docker\.sock", "high"),
+    (r"(^|/)(docker-)?compose[^/]*\.ya?ml$", "I2", "Database/cache port published to all interfaces",
+     r"(?im)^\s*-\s*[\"']?(0\.0\.0\.0:)?(3306|5432|27017|6379|9200|5984|11211|1433)(:\d+)?[\"']?\s*$", "high"),
+    (r"(^|/)(docker-)?compose[^/]*\.ya?ml$", "I2", "Hardcoded password in compose file",
+     r"(?im)^\s*-?\s*\w*(PASSWORD|SECRET|TOKEN)\w*\s*[:=]\s*(?!\$\{)[\"']?[^\s\"'$]{4,}", "high"),
+    (r"(^|/)(docker-)?compose[^/]*\.ya?ml$", "I2", "Host network mode", r"(?im)^\s*network_mode:\s*[\"']?host", "medium"),
+    (r"nginx[^/]*\.conf$|(^|/)nginx/[^/]*\.conf$|(^|/)conf\.d/[^/]*\.conf$|(^|/)sites-(available|enabled)/|\.nginx$", "I3", "nginx server_tokens on (version disclosure)", r"(?im)^\s*server_tokens\s+on", "low"),
+    (r"nginx[^/]*\.conf$|(^|/)nginx/[^/]*\.conf$|(^|/)conf\.d/[^/]*\.conf$|(^|/)sites-(available|enabled)/|\.nginx$", "I3", "Directory listing enabled", r"(?im)^\s*autoindex\s+on", "high"),
+    (r"nginx[^/]*\.conf$|(^|/)nginx/[^/]*\.conf$|(^|/)conf\.d/[^/]*\.conf$|(^|/)sites-(available|enabled)/|\.nginx$|httpd[^/]*\.conf$|apache[^/]*\.conf$", "I3", "Legacy TLS/SSL protocol enabled",
+     r"(?im)^\s*(ssl_protocols|SSLProtocol)[^\n;]*\b(SSLv2|SSLv3|TLSv1(\.1)?)\b(?!\.[23])", "high"),
+    (r"(^|/)\.htaccess$|httpd[^/]*\.conf$|apache[^/]*\.conf$", "I3", "Apache directory listing enabled", r"(?im)^\s*Options\s+[^\n]*(?<!-)\bIndexes\b", "high"),
+    (r"\.ya?ml$", "I4", "Kubernetes privileged container", r"(?m)^\s*privileged:\s*true", "high"),
+    (r"\.ya?ml$", "I4", "Kubernetes privilege escalation allowed", r"(?m)^\s*allowPrivilegeEscalation:\s*true", "high"),
+    (r"\.ya?ml$", "I4", "Kubernetes hostNetwork/hostPID enabled", r"(?m)^\s*(hostNetwork|hostPID|hostIPC):\s*true", "high"),
+    (r"\.tf$", "I5", "Security group open to the internet on admin/database port",
+     r"(?s)from_port\s*=\s*(22|3389|3306|5432|27017|6379)\b.{0,300}?cidr_blocks\s*=\s*\[\s*\"0\.0\.0\.0/0\"", "critical"),
+    (r"\.tf$", "I5", "Public S3 bucket ACL", r"(?i)acl\s*=\s*\"public-read(-write)?\"", "high"),
+    (r"\.tf$", "I5", "Storage/database encryption disabled", r"(?i)\b(encrypted|storage_encrypted|enable_encryption)\s*=\s*false", "high"),
+    (r"\.tf$", "I5", "Database publicly accessible", r"(?i)publicly_accessible\s*=\s*true", "critical"),
+    (r"\.tf$|\.json$", "I5", "IAM policy grants all actions on all resources",
+     r"(?s)\"?Action\"?\s*[:=]\s*\[?\s*\"\*\"\s*\]?.{0,120}?\"?Resource\"?\s*[:=]\s*\[?\s*\"\*\"", "high"),
+    (r"(^|/)\.github/workflows/[^/]+\.ya?ml$", "I6", "pull_request_target workflow checks out untrusted PR code",
+     r"(?s)pull_request_target.{0,2000}?ref:\s*\$\{\{\s*github\.event\.pull_request\.head", "critical"),
+    (r"(^|/)\.github/workflows/[^/]+\.ya?ml$", "I6", "Untrusted input interpolated into a run step (script injection)",
+     r"run:[^\n]*\$\{\{\s*github\.event\.(issue|pull_request|comment|review|head_commit)\.[^}]*(title|body|message|name|ref)", "high"),
+    (r"(^|/)\.github/workflows/[^/]+\.ya?ml$", "I6", "Workflow grants write-all permissions", r"(?m)^\s*permissions:\s*write-all", "medium"),
+]
+INFRA = [(re.compile(f), c, t, re.compile(p) if p else None, s) for f, c, t, p, s in INFRA]
+K8S_KIND = re.compile(r"(?m)^\s*kind:\s*(Pod|Deployment|StatefulSet|DaemonSet|Job|CronJob|ReplicaSet)\b")
+
+def scan_infra(root):
+    for p in iter_files(root, include_hidden_dirs=(".github",)):
+        rel = os.path.relpath(p, root).replace("\\", "/")
+        text = None
+        for frx, control, title, rx, sev in INFRA:
+            if not frx.search(rel):
+                continue
+            if text is None:
+                text = read(p)
+                if "vibe-scan: ignore-file" in text[:600]:
+                    break
+            if control == "I4" and not K8S_KIND.search(text):
+                continue
+            if rx is None:
+                if "root" in title and not re.search(r"(?im)^\s*USER\s+(?!root\b|0\b)\S+", text):
+                    add(control, sev, title, rel, "add a non-root USER")
+                continue
+            for m in rx.finditer(text):
+                ln = text.count("\n", 0, m.start()) + 1
+                add(control, sev, title, f"{rel}:{ln}", re.sub(r"\s+", " ", m.group(0)).strip()[:80])
+                if control in ("I5", "I6") and "(?s)" in rx.pattern:
+                    break
+
+
+def deep_tools(root, history=True):
+    """Run semgrep / gitleaks / trivy when installed and merge their findings."""
+    used = []
+    if shutil.which("semgrep"):
+        used.append("semgrep")
+        try:
+            cfg = os.environ.get("SEMGREP_CONFIG", "p/default")
+            r = subprocess.run(["semgrep", "scan", "--config", cfg, "--json", "--quiet", "--metrics=off", root],
+                               capture_output=True, text=True, timeout=900)
+            data = json.loads(r.stdout or "{}")
+            if not r.stdout.strip() or (data.get("errors") and not data.get("results")):
+                add("SEM", "info", f"semgrep returned no results for config '{cfg}'", "",
+                    "registry unreachable? set SEMGREP_CONFIG to a local rules folder")
+            for x in data.get("results", [])[:300]:
+                sev = {"ERROR": "high", "WARNING": "medium", "INFO": "low"}.get(x.get("extra", {}).get("severity", ""), "medium")
+                add("SEM", sev, "semgrep: " + x.get("check_id", "rule").split(".")[-1],
+                    f"{os.path.relpath(x.get('path', ''), root)}:{x.get('start', {}).get('line', 0)}",
+                    (x.get("extra", {}).get("message", "") or "")[:140])
+        except Exception as e:
+            add("SEM", "info", "semgrep failed", "", str(e)[:120])
+    if shutil.which("gitleaks"):
+        used.append("gitleaks")
+        rpt = os.path.join(root, ".gitleaks-report.tmp.json")
+        try:
+            cmd = ["gitleaks", "detect", "--source", root, "--report-format", "json", "--report-path", rpt, "--redact", "--exit-code", "0"]
+            if not history:
+                cmd.append("--no-git")
+            subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+            for x in json.load(open(rpt, encoding="utf-8")) if os.path.exists(rpt) else []:
+                add("C24" if x.get("Commit") else "C2", "critical", "gitleaks: " + x.get("RuleID", "secret"),
+                    f"{x.get('File', '')}:{x.get('StartLine', 0)}" + (f" (commit {x.get('Commit', '')[:10]})" if x.get("Commit") else ""),
+                    "revoke and rotate (C25)")
+        except Exception as e:
+            add("C24", "info", "gitleaks failed", "", str(e)[:120])
+        finally:
+            if os.path.exists(rpt):
+                os.remove(rpt)
+    if shutil.which("trivy"):
+        used.append("trivy")
+        try:
+            r = subprocess.run(["trivy", "fs", "--quiet", "--format", "json", "--scanners", "vuln,misconfig,secret", root],
+                               capture_output=True, text=True, timeout=900)
+            for res in json.loads(r.stdout or "{}").get("Results", []) or []:
+                tgt = res.get("Target", "")
+                for v in (res.get("Vulnerabilities") or [])[:200]:
+                    add("C21", v.get("Severity", "MEDIUM").lower() if v.get("Severity", "").lower() in SEV else "medium",
+                        f"trivy: {v.get('PkgName')} {v.get('InstalledVersion')} {v.get('VulnerabilityID')}", tgt, "fixed in " + str(v.get("FixedVersion") or "n/a"))
+                for m in (res.get("Misconfigurations") or [])[:200]:
+                    add("I0", m.get("Severity", "MEDIUM").lower() if m.get("Severity", "").lower() in SEV else "medium",
+                        "trivy: " + (m.get("Title") or m.get("ID", "misconfig")), tgt, (m.get("Message") or "")[:140])
+                for sct in (res.get("Secrets") or [])[:100]:
+                    add("C2", "critical", "trivy secret: " + sct.get("Title", "secret"), f"{tgt}:{sct.get('StartLine', 0)}", "revoke and rotate (C25)")
+        except Exception as e:
+            add("C21", "info", "trivy failed", "", str(e)[:120])
+    missing = [t for t in ("semgrep", "gitleaks", "trivy") if t not in used]
+    if missing:
+        add("SEM", "info", "Deep mode: not installed: " + ", ".join(missing), "", "optional; built-in checks still ran")
+
+def safe_fix(root):
+    """Non-destructive fixes only. Never edits source code, never deletes, never touches history."""
+    done = []
+    gi_path = os.path.join(root, ".gitignore")
+    gi = read(gi_path) if os.path.exists(gi_path) else ""
+    want = [".env", ".env.*", "!.env.example", "*.pem", "*.key", "*.sql.gz", "*.dump", ".gitleaks-report*"]
+    lines = gi.splitlines()
+    add_lines = [w for w in want if w not in lines]
+    if add_lines:
+        with open(gi_path, "a", encoding="utf-8") as fh:
+            fh.write(("\n" if gi and not gi.endswith("\n") else "") + "# added by vibe-security-hardening\n" + "\n".join(add_lines) + "\n")
+        done.append(".gitignore: added " + ", ".join(add_lines))
+    envf = os.path.join(root, ".env")
+    ex = os.path.join(root, ".env.example")
+    if os.path.exists(envf) and not os.path.exists(ex):
+        names = [l.split("=", 1)[0].strip() for l in read(envf).splitlines() if "=" in l and not l.strip().startswith("#")]
+        with open(ex, "w", encoding="utf-8") as fh:
+            fh.write("# names only, no values (generated by vibe-security-hardening)\n" + "".join(f"{n}=\n" for n in names))
+        done.append(".env.example created with variable names only")
+    tracked = [f for f in git(root, "ls-files").splitlines() if SENSITIVE_TRACKED.search(f)] if os.path.isdir(os.path.join(root, ".git")) else []
+    outdir = os.path.join(root, ".security")
+    os.makedirs(outdir, exist_ok=True)
+    if tracked:
+        with open(os.path.join(outdir, "untrack-sensitive-files.sh"), "w", encoding="utf-8") as fh:
+            fh.write("#!/bin/sh\n# Review, then run. Removes files from git tracking only (keeps them on disk).\n# Afterwards ROTATE every secret these files contained (C25); history still holds them.\n"
+                     + "".join(f"git rm --cached -- '{t}'\n" for t in tracked))
+        done.append(".security/untrack-sensitive-files.sh written for review (" + str(len(tracked)) + " files)")
+    rls = [f for f in findings if f["control"] == "C3" and f["title"].startswith("Table '")]
+    if rls:
+        tables = sorted({re.search(r"Table '([^']+)'", f["title"]).group(1) for f in rls})
+        with open(os.path.join(outdir, "draft-enable-rls.sql"), "w", encoding="utf-8") as fh:
+            fh.write("-- DRAFT: review before moving into your migrations folder.\n-- Enabling RLS without policies blocks ALL API access to the table: add the policies first.\n\n")
+            for t in tables:
+                fh.write(f"alter table public.{t} enable row level security;\n"
+                         f"-- create policy \"{t}: owner can read\" on public.{t} for select using ((select auth.uid()) = user_id);\n"
+                         f"-- create policy \"{t}: owner can write\" on public.{t} for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);\n\n")
+        done.append(".security/draft-enable-rls.sql written for " + ", ".join(tables))
+    st = os.path.join(outdir, "security.txt")
+    if not os.path.exists(st):
+        with open(st, "w", encoding="utf-8") as fh:
+            fh.write("Contact: mailto:security@YOUR-DOMAIN\nExpires: 2027-12-31T23:59:59Z\nPreferred-Languages: ar, en\n# Publish at https://YOUR-DOMAIN/.well-known/security.txt\n")
+        done.append(".security/security.txt template written")
+    hdr = os.path.join(outdir, "security-headers.txt")
+    if not os.path.exists(hdr):
+        with open(hdr, "w", encoding="utf-8") as fh:
+            fh.write("Content-Security-Policy: default-src 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'\n"
+                     "Strict-Transport-Security: max-age=63072000; includeSubDomains; preload\nX-Content-Type-Options: nosniff\n"
+                     "Referrer-Policy: strict-origin-when-cross-origin\nPermissions-Policy: camera=(), microphone=(), geolocation=()\n"
+                     "# Apply via your framework or server config: see references/stacks.md\n")
+        done.append(".security/security-headers.txt baseline written")
+    return done
 
 def git(root, *args):
     try:
@@ -278,10 +453,17 @@ def main():
     ap.add_argument("--fail-on", default="critical", choices=list(SEV))
     ap.add_argument("--no-history", action="store_true")
     ap.add_argument("--no-deps", action="store_true")
+    ap.add_argument("--no-infra", action="store_true", help="skip Docker/compose/nginx/k8s/terraform/CI checks")
+    ap.add_argument("--deep", action="store_true", help="also run semgrep, gitleaks, trivy if installed")
+    ap.add_argument("--fix", action="store_true", help="apply safe, non-destructive fixes and write review files to .security/")
     a = ap.parse_args()
     root = os.path.abspath(a.path)
     scan_files(root)
+    if not a.no_infra:
+        scan_infra(root)
     scan_git(root, history=not a.no_history)
+    if a.deep:
+        deep_tools(root, history=not a.no_history)
     if not a.no_deps:
         audit_deps(root)
     if a.url:
@@ -298,9 +480,14 @@ def main():
     print("summary: " + "  ".join(f"{s}={counts[s]}" for s in SEV))
     for f in uniq:
         print(f"[{f['severity'].upper():8}] {f['control']:4} {f['title']}" + (f"  @ {f['where']}" if f['where'] else "") + (f"  — {f['detail']}" if f['detail'] else ""))
+    if a.fix:
+        fixed = safe_fix(root)
+        print("safe fixes applied:" if fixed else "safe fixes: nothing to do")
+        for d in fixed:
+            print("  - " + d)
     if a.json:
         with open(a.json, "w", encoding="utf-8") as fh:
-            json.dump({"root": root, "url": a.url, "summary": counts, "findings": uniq}, fh, indent=2, ensure_ascii=False)
+            json.dump({"tool": "vibe-security-hardening", "version": VERSION, "root": root, "url": a.url, "summary": counts, "findings": uniq}, fh, indent=2, ensure_ascii=False)
     worst = max([SEV[f["severity"]] for f in uniq] or [0])
     sys.exit(1 if worst >= SEV[a.fail_on] and worst > 0 else 0)
 
