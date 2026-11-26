@@ -240,7 +240,7 @@ def test_guard_and_dashboard(tmp):
     dash = os.path.join(tmp, "dash.html")
     subprocess.run([PY, "-I", os.path.join(S, "alerts_dashboard.py"), log, "--out", dash, "--brand", "T"], capture_output=True, timeout=60)
     h = open(dash, encoding="utf-8").read()
-    check("dashboard: built with totals and attack types", "SQL injection" in h and "Amsterdam" in h)
+    check("dashboard: built with totals and Arabic attack-type labels", "حقن SQL" in h and "Amsterdam" in h)
     d = subprocess.run([PY, "-I", os.path.join(S, "alerts_dashboard.py"), log, "--digest", "--lang", "en"], capture_output=True, text=True, timeout=60)
     check("dashboard: digest text produced", "Attack attempts" in d.stdout)
 
