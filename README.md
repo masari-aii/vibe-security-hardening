@@ -2,12 +2,14 @@
 
 # 🛡️ Vibe Security Hardening
 
-**Secure, encrypt, protect and monitor AI-built web apps before launch**
+**Scan, secure, encrypt, protect and monitor AI-built web apps before launch**
 
-تأمين وتشفير وحماية المواقع المبنية بالذكاء الاصطناعي قبل الإطلاق
+فحص وتأمين وتشفير وحماية المواقع المبنية بالذكاء الاصطناعي قبل الإطلاق
 
 ![controls](https://img.shields.io/badge/controls-27-2563eb)
 ![encryption](https://img.shields.io/badge/encryption-XChaCha20%20%7C%20AES--256--GCM-7c3aed)
+![scanner](https://img.shields.io/badge/scanner-automated-0ea5e9)
+![PDPL](https://img.shields.io/badge/Saudi-PDPL-15803d)
 ![models](https://img.shields.io/badge/models-any%20LLM-16a34a)
 ![stack](https://img.shields.io/badge/stack-agnostic-f97316)
 ![license](https://img.shields.io/badge/license-MIT-64748b)
@@ -26,9 +28,13 @@ A single `SKILL.md` that turns any LLM into a security reviewer for your own pro
 
 | Layer | Contents |
 |---|---|
+| Automated scanner | `scripts/scan.py` finds leaked keys (files + git history), exposed files, public env misuse, dangerous code, missing RLS, vulnerable dependencies, and live-site header/cookie/CORS/HTTPS/exposed-path issues. GitHub Actions template runs it on every push |
 | 27 core controls | Login, secrets, database, input, transport, headers, abuse, dependencies, review |
 | Module E: Encryption (E1–E9) | Sensitive-data map encrypted by default, XChaCha20-Poly1305 maximum-strength profile with HKDF per-field keys and peppered Argon2id, TLS, internal TLS, encryption at rest, field-level AES-256-GCM with blind index, key management and rotation, token signing, encrypted backups, front-end build hardening |
 | Module D: Intrusion alerts (D1–D9) | Detects SQL injection, XSS, traversal, command injection, SSRF, probes for `.env`/`.git`, brute force and honeytoken use; blocks the request and emails the attack type, IP, approximate location, path and recommended action (throttled, secrets masked) |
+| Module A: AI app security (A1–A11) | OWASP GenAI LLM Top 10 2026: prompt injection, data leaks, agent/MCP tool permissions, cost limits, vector store isolation, safe output rendering |
+| Module S: Stack playbooks | Ready fixes for Next.js, Supabase, Firebase, Vercel, Laravel, Django, Express, PHP/WordPress, mobile |
+| Module K: Saudi PDPL (K1–K12) | Consent, Arabic privacy notice, data rights, retention, 72-hour breach notification to SDAIA, cross-border transfers |
 | Module P: Active protection (P1–P7) | CDN/WAF and DDoS, bot challenge, admin MFA and allow-list, breached-password blocking, tested backups, incident kill switch, signed private media |
 
 Includes tested reference encryption code for Node.js and Python, plus a safe plan for migrating existing plaintext data.
@@ -36,8 +42,8 @@ Includes tested reference encryption code for Node.js and Python, plus a safe pl
 ### Install
 
 **Claude (web / desktop / mobile)**
-1. Download this repo as ZIP, or zip a folder named `vibe-security-hardening` containing `SKILL.md`.
-2. Open **Customize > Skills**, click **+**, then **Upload a skill**, and select the ZIP.
+1. Download [`dist/vibe-security-hardening.zip`](dist/vibe-security-hardening.zip).
+2. Open **Customize > Skills**, click **+**, then **Upload a skill**, and select the ZIP (remove an older version first).
 3. Toggle the skill on.
 
 **Claude Code**
@@ -47,12 +53,18 @@ git clone https://github.com/masari-aii/vibe-security-hardening ~/.claude/skills
 Use `.claude/skills/vibe-security-hardening/` inside a project to scope it to that project.
 
 **Any other model (ChatGPT, Gemini, DeepSeek, Qwen, Llama...)**
-Paste the full content of `SKILL.md` as the system prompt, custom instructions, or first message.
+Paste the full content of [`ALL-IN-ONE.md`](ALL-IN-ONE.md) as the system prompt, custom instructions, or first message.
 
 **Coding agents (Cursor, Windsurf, others)**
-Add `SKILL.md` to the project rules or reference the file in your prompt.
+Copy the repo folder into the project (or add `ALL-IN-ONE.md`) and reference it in the project rules or reference the file in your prompt.
 
 ### Usage
+
+Run the scanner yourself (Python 3.8+, no installs):
+```bash
+python3 scripts/scan.py /path/to/project --url https://your-site.com
+```
+
 
 Full audit and fix:
 ```text
@@ -137,8 +149,8 @@ Defensive use on your own project only. It is a hardening pass, not a guarantee 
 
 كثير من المواقع المبنية بالـ vibe coding تعمل جيدًا لكنها تُطلق بثغرات شائعة: مفاتيح API ظاهرة في المتصفح، قاعدة بيانات مفتوحة، صفحات أدمن بلا حماية، أسعار يتحكم بها العميل، وبيانات حساسة مخزّنة بدون تشفير. هذه المهارة تعطي النموذج منهجًا ثابتًا بدل الأسئلة العشوائية:
 
-1. **الكشف**: يتعرّف على الإطار وقاعدة البيانات والمصادقة والاستضافة والدفع.
-2. **التدقيق**: يمرّ على البنود الـ27 ثم وحدات التشفير (E1–E9) والحماية (P1–P7) وكشف الاختراق (D1–D9)، ولكل بند حالة (ناجح / فاشل / لا ينطبق) مع الدليل: الملف ورقم السطر.
+1. **الكشف**: يتعرّف على الإطار وقاعدة البيانات والمصادقة والاستضافة والدفع، ويختار دليل الإصلاح المناسب لتقنيتك.
+2. **التدقيق**: يشغّل الفاحص الآلي أولًا، ثم يمرّ على البنود الـ27 ثم وحدات التشفير (E1–E9) والحماية (P1–P7) وكشف الاختراق (D1–D9)، وأمان الذكاء الاصطناعي (A) ونظام حماية البيانات السعودي (K) عند الحاجة، ولكل بند حالة (ناجح / فاشل / لا ينطبق) مع الدليل: الملف ورقم السطر.
 3. **الخطة**: يرتّب المشاكل حسب الخطورة (حرج، عالٍ، متوسط، منخفض).
 4. **الإصلاح والتشفير**: أصغر تعديل ممكن دون كسر ما يعمل، مع تشفير الحقول الحساسة وتفعيل طبقات الحماية.
 5. **التحقق**: اختبار فعلي لكل إصلاح.
@@ -151,9 +163,15 @@ Defensive use on your own project only. It is a hardening pass, not a guarantee 
 | 27 بندًا أساسيًا | الدخول، المفاتيح، قاعدة البيانات، المدخلات، النقل، الهيدرز، منع الإساءة، المكتبات، المراجعة |
 | وحدة التشفير E1–E9 | خريطة للبيانات الحساسة تُشفَّر تلقائيًا، ملف أقصى قوة بـ XChaCha20-Poly1305 ومفتاح مستقل لكل حقل وكلمات مرور Argon2id مع pepper، HTTPS، تشفير الاتصالات الداخلية، التشفير على مستوى التخزين، تشفير الحقول الحساسة بـ AES-256-GCM مع فهرس بحث آمن، إدارة المفاتيح وتدويرها، توقيع التوكنات، تشفير النسخ الاحتياطية، تقوية كود الواجهة |
 | وحدة كشف الاختراق D1–D9 | يكتشف حقن SQL و XSS وتجاوز المسارات وحقن الأوامر و SSRF ومحاولات الوصول لـ `.env` و `.git` وتخمين كلمات المرور واستخدام البيانات الفخ؛ يحجب الطلب ويرسل إيميل فيه نوع الهجوم وعنوان IP والموقع التقريبي والصفحة المستهدفة والإجراء المقترح |
+| الفاحص الآلي | سكربت `scripts/scan.py` يكشف المفاتيح المسرّبة (في الملفات وتاريخ Git)، الملفات المكشوفة، المتغيرات السرية الظاهرة للمتصفح، الكود الخطر، الجداول بدون RLS، المكتبات المصابة، ومشاكل الموقع المباشر (الهيدرز، الكوكيز، CORS، HTTPS، المسارات المكشوفة). مع ملف GitHub Actions يشغّله عند كل رفع |
+| وحدة أمان تطبيقات الذكاء الاصطناعي A1–A11 | حسب OWASP GenAI LLM Top 10 2026: حقن الأوامر، تسريب البيانات، صلاحيات الوكلاء وأدوات MCP، سقف التكلفة، عزل قواعد المتجهات، العرض الآمن للمخرجات |
+| أدلة حسب التقنية | إصلاحات جاهزة لـ Next.js و Supabase و Firebase و Vercel و Laravel و Django و Express و PHP/WordPress وتطبيقات الجوال |
+| وحدة نظام حماية البيانات الشخصية السعودي K1–K12 | الموافقة، سياسة خصوصية بالعربي، حقوق صاحب البيانات، مدة الاحتفاظ، إبلاغ سدايا عن التسرّب خلال 72 ساعة، نقل البيانات خارج المملكة |
 | وحدة الحماية P1–P7 | جدار حماية CDN/WAF وصد DDoS، تحدي البوتات، MFA للأدمن، منع كلمات المرور المسرّبة، نسخ احتياطي مُختبر، زر طوارئ لإلغاء الجلسات والمفاتيح، روابط موقّعة للملفات الخاصة |
 
 تتضمن كود تشفير مُختبرًا لـ Node.js و Python، وخطة آمنة لتشفير البيانات الموجودة حاليًا بدون تشفير.
+
+> عن نظام حماية البيانات: الوحدة K قائمة تقنية تساعدك على الامتثال، وليست استشارة قانونية.
 
 > عن التنبيهات: الموقع الجغرافي من عنوان IP تقريبي، والمهاجم قد يستخدم VPN، فالإيميل يوضح من أين جاء الهجوم لا هوية الشخص.
 
@@ -162,8 +180,8 @@ Defensive use on your own project only. It is a hardening pass, not a guarantee 
 ### التركيب
 
 **Claude (الويب / سطح المكتب / الجوال)**
-1. نزّل المستودع كملف ZIP، أو اضغط مجلدًا باسم `vibe-security-hardening` بداخله `SKILL.md`.
-2. افتح **Customize > Skills** ثم **+** ثم **Upload a skill** واختر الملف.
+1. نزّل الملف [`dist/vibe-security-hardening.zip`](dist/vibe-security-hardening.zip).
+2. افتح **Customize > Skills** ثم **+** ثم **Upload a skill** واختر الملف (احذف النسخة القديمة أولًا).
 3. فعّل المهارة.
 
 **Claude Code**
@@ -173,12 +191,18 @@ git clone https://github.com/masari-aii/vibe-security-hardening ~/.claude/skills
 ضعها في `.claude/skills/vibe-security-hardening/` داخل المشروع لتخصيصها لذلك المشروع فقط.
 
 **أي نموذج آخر (ChatGPT و Gemini و DeepSeek و Qwen و Llama...)**
-الصق محتوى `SKILL.md` كاملًا كتعليمات النظام أو التعليمات المخصصة أو أول رسالة.
+الصق محتوى [`ALL-IN-ONE.md`](ALL-IN-ONE.md) كاملًا كتعليمات النظام أو التعليمات المخصصة أو أول رسالة.
 
 **وكلاء البرمجة (Cursor و Windsurf وغيرها)**
-أضف `SKILL.md` إلى قواعد المشروع أو أشر إليه في طلبك.
+انسخ مجلد المستودع داخل المشروع (أو أضف `ALL-IN-ONE.md`) وأشر إليه في قواعد المشروع.
 
 ### الاستخدام
+
+شغّل الفاحص بنفسك (Python 3.8 أو أحدث، بدون تثبيت أي شيء):
+```bash
+python3 scripts/scan.py /path/to/project --url https://your-site.com
+```
+
 
 فحص وإصلاح كامل:
 ```text
