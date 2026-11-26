@@ -21,21 +21,46 @@
 
 A single `SKILL.md` that turns any LLM into a security reviewer for your own project. It detects the stack, audits 27 controls with evidence, applies minimal fixes, verifies them, and returns a report.
 
-### Works with
+### Install
 
-| Host | How |
-|---|---|
-| Claude (skills) | Add `SKILL.md` as a skill |
-| Claude Code | Copy the folder to `.claude/skills/vibe-security-hardening/` |
-| ChatGPT, Gemini, DeepSeek, Qwen, Llama, others | Paste `SKILL.md` as the system or first message |
-| Cursor, Windsurf, other coding agents | Add `SKILL.md` to the project rules |
+**Claude (web / desktop / mobile)**
+1. Download this repo as ZIP, or zip a folder named `vibe-security-hardening` containing `SKILL.md`.
+2. Open **Customize > Skills**, click **+**, then **Upload a skill**, and select the ZIP.
+3. Toggle the skill on.
 
-### Quick start
+**Claude Code**
+```bash
+git clone https://github.com/masari-aii/vibe-security-hardening ~/.claude/skills/vibe-security-hardening
+```
+Use `.claude/skills/vibe-security-hardening/` inside a project to scope it to that project.
 
+**Any other model (ChatGPT, Gemini, DeepSeek, Qwen, Llama...)**
+Paste the full content of `SKILL.md` as the system prompt, custom instructions, or first message.
+
+**Coding agents (Cursor, Windsurf, others)**
+Add `SKILL.md` to the project rules or reference the file in your prompt.
+
+### Usage
+
+Full audit and fix:
 ```text
 Apply the 27-control hardening workflow to my project.
-Stack: <framework, database, hosting>
+Stack: Next.js + Supabase + Vercel
 ```
+
+Audit only, no changes:
+```text
+Audit my project against the 27 controls. Report only, do not modify files.
+```
+
+One group or one control:
+```text
+Run controls 2, 11, 24, 25 (secrets) on this repo.
+```
+
+Chat without file access: paste the relevant files (auth, API routes, DB rules, config) with the request.
+
+What you get back: PASS / FAIL / N/A per control with file and line evidence, fixes ordered by severity, a verification test for each fix, and a list of steps only you can do (key rotation, hosting settings).
 
 ### Workflow
 
@@ -96,21 +121,62 @@ Defensive use on your own project only. It is a hardening pass, not a guarantee 
 
 ملف `SKILL.md` واحد يحوّل أي نموذج ذكاء اصطناعي إلى مراجع أمني لمشروعك: يكشف التقنيات، يدقّق 27 بندًا بالأدلة، يطبّق أصغر إصلاح ممكن، يتحقق منه، ثم يعطيك تقريرًا.
 
-### يعمل مع
+### ما هي؟
 
-| المنصة | الطريقة |
-|---|---|
-| Claude (المهارات) | أضف `SKILL.md` كمهارة |
-| Claude Code | انسخ المجلد إلى `.claude/skills/vibe-security-hardening/` |
-| ChatGPT و Gemini و DeepSeek و Qwen و Llama وغيرها | الصق `SKILL.md` كرسالة نظام أو أول رسالة |
-| Cursor و Windsurf وغيرها | أضف `SKILL.md` إلى قواعد المشروع |
+كثير من المواقع المبنية بالـ vibe coding تعمل جيدًا لكنها تُطلق بثغرات شائعة: مفاتيح API ظاهرة في المتصفح، قاعدة بيانات مفتوحة، صفحات أدمن بلا حماية، أسعار يتحكم بها العميل. هذه المهارة تعطي النموذج منهجًا ثابتًا بدل الأسئلة العشوائية:
 
-### البداية السريعة
+1. **الكشف**: يتعرّف على الإطار وقاعدة البيانات والمصادقة والاستضافة والدفع.
+2. **التدقيق**: يمرّ على البنود الـ27، ولكل بند حالة (ناجح / فاشل / لا ينطبق) مع الدليل: الملف ورقم السطر.
+3. **الخطة**: يرتّب المشاكل حسب الخطورة (حرج، عالٍ، متوسط، منخفض).
+4. **الإصلاح**: أصغر تعديل ممكن دون كسر ما يعمل.
+5. **التحقق**: اختبار فعلي لكل إصلاح.
+6. **التقرير**: جدول بكل مشكلة وكيف حُلّت وما المتبقي عليك.
 
+### التركيب
+
+**Claude (الويب / سطح المكتب / الجوال)**
+1. نزّل المستودع كملف ZIP، أو اضغط مجلدًا باسم `vibe-security-hardening` بداخله `SKILL.md`.
+2. افتح **Customize > Skills** ثم **+** ثم **Upload a skill** واختر الملف.
+3. فعّل المهارة.
+
+**Claude Code**
+```bash
+git clone https://github.com/masari-aii/vibe-security-hardening ~/.claude/skills/vibe-security-hardening
+```
+ضعها في `.claude/skills/vibe-security-hardening/` داخل المشروع لتخصيصها لذلك المشروع فقط.
+
+**أي نموذج آخر (ChatGPT و Gemini و DeepSeek و Qwen و Llama...)**
+الصق محتوى `SKILL.md` كاملًا كتعليمات النظام أو التعليمات المخصصة أو أول رسالة.
+
+**وكلاء البرمجة (Cursor و Windsurf وغيرها)**
+أضف `SKILL.md` إلى قواعد المشروع أو أشر إليه في طلبك.
+
+### الاستخدام
+
+فحص وإصلاح كامل:
 ```text
 طبّق فحص الـ27 بندًا على مشروعي.
-التقنيات: <الإطار، قاعدة البيانات، الاستضافة>
+التقنيات: Next.js + Supabase + Vercel
 ```
+
+فحص فقط دون تعديل:
+```text
+افحص مشروعي على البنود الـ27 وأعطني تقريرًا فقط، لا تعدّل أي ملف.
+```
+
+مجموعة أو بنود محددة:
+```text
+نفّذ البنود 2 و11 و24 و25 (المفاتيح والأسرار) على هذا المستودع.
+```
+
+في محادثة بلا وصول للملفات: الصق الملفات المهمة (المصادقة، مسارات API، قواعد قاعدة البيانات، الإعدادات) مع الطلب.
+
+**ما الذي تحصل عليه؟** حالة كل بند مع الدليل، الإصلاحات مرتبة حسب الخطورة، اختبار تحقق لكل إصلاح، وقائمة بما يلزمك أنت فعله (تبديل المفاتيح، إعدادات الاستضافة).
+
+**نصائح**
+- شغّلها قبل كل إطلاق وبعد كل ميزة كبيرة.
+- جرّب على نسخة محلية أو staging، لا على الإنتاج.
+- أي مفتاح ظهر في Git أو المتصفح يُعتبر مسرّبًا: بدّله من المزوّد، حذف السطر لا يكفي.
 
 ### البنود الـ27
 
