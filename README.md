@@ -6,7 +6,7 @@
 
 فحص وتأمين وتشفير وحماية ومراقبة المواقع المبنية بالذكاء الاصطناعي قبل الإطلاق
 
-![version](https://img.shields.io/badge/version-3.1.0-111827)
+![version](https://img.shields.io/badge/version-3.1.1-111827)
 ![tests](https://img.shields.io/badge/tests-33%2F33-16a34a)
 ![benchmark](https://img.shields.io/badge/benchmark-40%2F40%20detected%2C%200%20false%20positives-16a34a)
 ![controls](https://img.shields.io/badge/controls-27%20%2B%2070%20module%20items-2563eb)
@@ -15,7 +15,7 @@
 ![models](https://img.shields.io/badge/models-any%20LLM-0ea5e9)
 ![license](https://img.shields.io/badge/license-MIT-64748b)
 
-[العربية](#العربية) · [English](#english) · [Screenshots](#screenshots-demo-project) · [Changelog](CHANGELOG.md)
+[العربية](#العربية) · [English](#english) · **[📘 دليل الأوامر](docs/COMMANDS.md)** · **[📘 Commands guide](docs/COMMANDS.en.md)** · [Screenshots](#screenshots-demo-project) · [Changelog](CHANGELOG.md)
 
 </div>
 
@@ -202,6 +202,8 @@ git clone https://github.com/masari-aii/vibe-security-hardening ~/.claude/skills
 
 ### استخدام الأدوات مباشرة (Python 3.8+، بدون تثبيت)
 
+> 📘 **الشرح الكامل لكل أمر وكل خيار مع أمثلة وطريقة قراءة النتائج وحل المشاكل: [دليل الأوامر](docs/COMMANDS.md)**
+
 ```bash
 # 1) فحص كامل وحفظ نقطة البداية
 python3 scripts/scan.py ./my-app --url https://my-site.com --json before.json
@@ -359,7 +361,7 @@ Secure, encrypt and protect my project with the full skill, and give me the clie
 Stack: Next.js + Supabase + Vercel
 ```
 
-Or run the tools yourself (Python 3.8+, no installs):
+Or run the tools yourself (Python 3.8+, no installs). 📘 **Every command and option, with examples, output guide and troubleshooting: [Commands guide](docs/COMMANDS.en.md)**
 ```bash
 python3 scripts/scan.py ./my-app --url https://my-site.com --json before.json     # scan + baseline
 python3 scripts/scan.py ./my-app --fix                                             # safe fixes
@@ -380,7 +382,7 @@ python3 scripts/alerts_dashboard.py alerts.jsonl --out dashboard.html --lang en 
 SKILL.md                 core workflow + 27 controls + module index
 ALL-IN-ONE.md            single-file edition for any LLM (generated)
 references/              encryption, protection, intrusion-alerts, infrastructure, ai-security, stacks, pdpl, nca-ecc, scanner
-docs/                    screenshots (docs/images) and sample PDF reports
+docs/                    COMMANDS.md / COMMANDS.en.md (full command guide), screenshots, sample PDF reports
 scripts/                 scan.py, report.py, authz_test.py, guard.mjs, guard.py, alerts_dashboard.py
 templates/               security-scan.yml (GitHub Actions for your project)
 tests/                   run_tests.py (test suite + benchmark, runtime fixtures)

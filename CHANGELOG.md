@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.1.1 — 2026-11-26
+- Full command guide in Arabic (`docs/COMMANDS.md`) and English (`docs/COMMANDS.en.md`): every tool and option, model prompts, config formats, output and exit codes, environment variables, scheduling, CI, end-to-end scenarios, troubleshooting.
+- Every tool's `--help` now describes each option and shows examples and exit codes.
+
 ## 3.1.0 — 2026-11-26
 - Screenshots gallery (Arabic and English): scanner before/after, authorization tests, client report before/after, alerts dashboard, workflow diagram, with a guide to reading each chart.
 - Sample client reports as PDF in `docs/`.
