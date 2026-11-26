@@ -2,12 +2,12 @@
 
 # 🛡️ Vibe Security Hardening
 
-**Secure, encrypt and protect AI-built web apps before launch**
+**Secure, encrypt, protect and monitor AI-built web apps before launch**
 
 تأمين وتشفير وحماية المواقع المبنية بالذكاء الاصطناعي قبل الإطلاق
 
 ![controls](https://img.shields.io/badge/controls-27-2563eb)
-![encryption](https://img.shields.io/badge/encryption-AES--256--GCM-7c3aed)
+![encryption](https://img.shields.io/badge/encryption-XChaCha20%20%7C%20AES--256--GCM-7c3aed)
 ![models](https://img.shields.io/badge/models-any%20LLM-16a34a)
 ![stack](https://img.shields.io/badge/stack-agnostic-f97316)
 ![license](https://img.shields.io/badge/license-MIT-64748b)
@@ -27,7 +27,8 @@ A single `SKILL.md` that turns any LLM into a security reviewer for your own pro
 | Layer | Contents |
 |---|---|
 | 27 core controls | Login, secrets, database, input, transport, headers, abuse, dependencies, review |
-| Module E: Encryption (E1–E8) | TLS, internal TLS, encryption at rest, field-level AES-256-GCM with blind index, key management and rotation, token signing, encrypted backups, front-end build hardening |
+| Module E: Encryption (E1–E9) | Sensitive-data map encrypted by default, XChaCha20-Poly1305 maximum-strength profile with HKDF per-field keys and peppered Argon2id, TLS, internal TLS, encryption at rest, field-level AES-256-GCM with blind index, key management and rotation, token signing, encrypted backups, front-end build hardening |
+| Module D: Intrusion alerts (D1–D9) | Detects SQL injection, XSS, traversal, command injection, SSRF, probes for `.env`/`.git`, brute force and honeytoken use; blocks the request and emails the attack type, IP, approximate location, path and recommended action (throttled, secrets masked) |
 | Module P: Active protection (P1–P7) | CDN/WAF and DDoS, bot challenge, admin MFA and allow-list, breached-password blocking, tested backups, incident kill switch, signed private media |
 
 Includes tested reference encryption code for Node.js and Python, plus a safe plan for migrating existing plaintext data.
@@ -137,7 +138,7 @@ Defensive use on your own project only. It is a hardening pass, not a guarantee 
 كثير من المواقع المبنية بالـ vibe coding تعمل جيدًا لكنها تُطلق بثغرات شائعة: مفاتيح API ظاهرة في المتصفح، قاعدة بيانات مفتوحة، صفحات أدمن بلا حماية، أسعار يتحكم بها العميل، وبيانات حساسة مخزّنة بدون تشفير. هذه المهارة تعطي النموذج منهجًا ثابتًا بدل الأسئلة العشوائية:
 
 1. **الكشف**: يتعرّف على الإطار وقاعدة البيانات والمصادقة والاستضافة والدفع.
-2. **التدقيق**: يمرّ على البنود الـ27 ثم وحدتي التشفير (E1–E8) والحماية (P1–P7)، ولكل بند حالة (ناجح / فاشل / لا ينطبق) مع الدليل: الملف ورقم السطر.
+2. **التدقيق**: يمرّ على البنود الـ27 ثم وحدات التشفير (E1–E9) والحماية (P1–P7) وكشف الاختراق (D1–D9)، ولكل بند حالة (ناجح / فاشل / لا ينطبق) مع الدليل: الملف ورقم السطر.
 3. **الخطة**: يرتّب المشاكل حسب الخطورة (حرج، عالٍ، متوسط، منخفض).
 4. **الإصلاح والتشفير**: أصغر تعديل ممكن دون كسر ما يعمل، مع تشفير الحقول الحساسة وتفعيل طبقات الحماية.
 5. **التحقق**: اختبار فعلي لكل إصلاح.
@@ -148,10 +149,13 @@ Defensive use on your own project only. It is a hardening pass, not a guarantee 
 | الطبقة | المحتوى |
 |---|---|
 | 27 بندًا أساسيًا | الدخول، المفاتيح، قاعدة البيانات، المدخلات، النقل، الهيدرز، منع الإساءة، المكتبات، المراجعة |
-| وحدة التشفير E1–E8 | HTTPS، تشفير الاتصالات الداخلية، التشفير على مستوى التخزين، تشفير الحقول الحساسة بـ AES-256-GCM مع فهرس بحث آمن، إدارة المفاتيح وتدويرها، توقيع التوكنات، تشفير النسخ الاحتياطية، تقوية كود الواجهة |
+| وحدة التشفير E1–E9 | خريطة للبيانات الحساسة تُشفَّر تلقائيًا، ملف أقصى قوة بـ XChaCha20-Poly1305 ومفتاح مستقل لكل حقل وكلمات مرور Argon2id مع pepper، HTTPS، تشفير الاتصالات الداخلية، التشفير على مستوى التخزين، تشفير الحقول الحساسة بـ AES-256-GCM مع فهرس بحث آمن، إدارة المفاتيح وتدويرها، توقيع التوكنات، تشفير النسخ الاحتياطية، تقوية كود الواجهة |
+| وحدة كشف الاختراق D1–D9 | يكتشف حقن SQL و XSS وتجاوز المسارات وحقن الأوامر و SSRF ومحاولات الوصول لـ `.env` و `.git` وتخمين كلمات المرور واستخدام البيانات الفخ؛ يحجب الطلب ويرسل إيميل فيه نوع الهجوم وعنوان IP والموقع التقريبي والصفحة المستهدفة والإجراء المقترح |
 | وحدة الحماية P1–P7 | جدار حماية CDN/WAF وصد DDoS، تحدي البوتات، MFA للأدمن، منع كلمات المرور المسرّبة، نسخ احتياطي مُختبر، زر طوارئ لإلغاء الجلسات والمفاتيح، روابط موقّعة للملفات الخاصة |
 
 تتضمن كود تشفير مُختبرًا لـ Node.js و Python، وخطة آمنة لتشفير البيانات الموجودة حاليًا بدون تشفير.
+
+> عن التنبيهات: الموقع الجغرافي من عنوان IP تقريبي، والمهاجم قد يستخدم VPN، فالإيميل يوضح من أين جاء الهجوم لا هوية الشخص.
 
 > تنبيه: كود الواجهة الذي يصل للمتصفح يمكن قراءته دائمًا؛ التشويش يبطّئ النسخ فقط. المهارة تنقل الأسرار ومنطق العمل إلى السيرفر.
 
