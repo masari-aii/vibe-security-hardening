@@ -2,11 +2,12 @@
 
 # 🛡️ Vibe Security Hardening
 
-**27-control pre-launch security audit for AI-built web apps**
+**Secure, encrypt and protect AI-built web apps before launch**
 
-فحص أمني من 27 بندًا لتأمين المواقع المبنية بالذكاء الاصطناعي قبل الإطلاق
+تأمين وتشفير وحماية المواقع المبنية بالذكاء الاصطناعي قبل الإطلاق
 
 ![controls](https://img.shields.io/badge/controls-27-2563eb)
+![encryption](https://img.shields.io/badge/encryption-AES--256--GCM-7c3aed)
 ![models](https://img.shields.io/badge/models-any%20LLM-16a34a)
 ![stack](https://img.shields.io/badge/stack-agnostic-f97316)
 ![license](https://img.shields.io/badge/license-MIT-64748b)
@@ -20,6 +21,16 @@
 ## English
 
 A single `SKILL.md` that turns any LLM into a security reviewer for your own project. It detects the stack, audits 27 controls with evidence, applies minimal fixes, verifies them, and returns a report.
+
+### What it covers
+
+| Layer | Contents |
+|---|---|
+| 27 core controls | Login, secrets, database, input, transport, headers, abuse, dependencies, review |
+| Module E: Encryption (E1–E8) | TLS, internal TLS, encryption at rest, field-level AES-256-GCM with blind index, key management and rotation, token signing, encrypted backups, front-end build hardening |
+| Module P: Active protection (P1–P7) | CDN/WAF and DDoS, bot challenge, admin MFA and allow-list, breached-password blocking, tested backups, incident kill switch, signed private media |
+
+Includes tested reference encryption code for Node.js and Python, plus a safe plan for migrating existing plaintext data.
 
 ### Install
 
@@ -44,7 +55,7 @@ Add `SKILL.md` to the project rules or reference the file in your prompt.
 
 Full audit and fix:
 ```text
-Apply the 27-control hardening workflow to my project.
+Secure, encrypt and protect my project: run the 27 controls plus modules E and P.
 Stack: Next.js + Supabase + Vercel
 ```
 
@@ -132,6 +143,18 @@ Defensive use on your own project only. It is a hardening pass, not a guarantee 
 5. **التحقق**: اختبار فعلي لكل إصلاح.
 6. **التقرير**: جدول بكل مشكلة وكيف حُلّت وما المتبقي عليك.
 
+### ماذا تغطي؟
+
+| الطبقة | المحتوى |
+|---|---|
+| 27 بندًا أساسيًا | الدخول، المفاتيح، قاعدة البيانات، المدخلات، النقل، الهيدرز، منع الإساءة، المكتبات، المراجعة |
+| وحدة التشفير E1–E8 | HTTPS، تشفير الاتصالات الداخلية، التشفير على مستوى التخزين، تشفير الحقول الحساسة بـ AES-256-GCM مع فهرس بحث آمن، إدارة المفاتيح وتدويرها، توقيع التوكنات، تشفير النسخ الاحتياطية، تقوية كود الواجهة |
+| وحدة الحماية P1–P7 | جدار حماية CDN/WAF وصد DDoS، تحدي البوتات، MFA للأدمن، منع كلمات المرور المسرّبة، نسخ احتياطي مُختبر، زر طوارئ لإلغاء الجلسات والمفاتيح، روابط موقّعة للملفات الخاصة |
+
+تتضمن كود تشفير مُختبرًا لـ Node.js و Python، وخطة آمنة لتشفير البيانات الموجودة حاليًا بدون تشفير.
+
+> تنبيه: كود الواجهة الذي يصل للمتصفح يمكن قراءته دائمًا؛ التشويش يبطّئ النسخ فقط. المهارة تنقل الأسرار ومنطق العمل إلى السيرفر.
+
 ### التركيب
 
 **Claude (الويب / سطح المكتب / الجوال)**
@@ -155,7 +178,7 @@ git clone https://github.com/masari-aii/vibe-security-hardening ~/.claude/skills
 
 فحص وإصلاح كامل:
 ```text
-طبّق فحص الـ27 بندًا على مشروعي.
+أمّن وشفّر واحمِ مشروعي: طبّق الـ27 بندًا ووحدتي التشفير والحماية.
 التقنيات: Next.js + Supabase + Vercel
 ```
 
