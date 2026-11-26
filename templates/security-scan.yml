@@ -1,0 +1,50 @@
+# Copy to .github/workflows/security-scan.yml in YOUR project,
+# and copy scripts/scan.py to .security/scan.py (pinned copy, reviewed by you).
+# Optional: Settings > Secrets and variables > Actions > Variables > SITE_URL = https://your-site
+name: Security scan
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 3 * * 1"   # every Monday 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history so leaked keys in old commits are found
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        if: hashFiles('package-lock.json') != ''
+        with:
+          node-version: "20"
+
+      - name: Install pip-audit
+        if: hashFiles('requirements.txt', 'pyproject.toml') != ''
+        run: pip install pip-audit
+
+      - name: Scan code, git history and dependencies
+        run: python3 .security/scan.py . --fail-on high --json security-report.json
+
+      - name: Scan live site
+        if: ${{ vars.SITE_URL != '' }}
+        run: python3 .security/scan.py . --no-history --no-deps --url "${{ vars.SITE_URL }}" --fail-on critical
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-report
+          path: security-report.json
+          retention-days: 30
