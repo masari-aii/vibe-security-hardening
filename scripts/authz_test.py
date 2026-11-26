@@ -51,8 +51,10 @@ def request(base, method, path, headers, body):
         return None, str(e).encode()
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("config")
+    ap = argparse.ArgumentParser(description="Authorization / IDOR tests: proves each user reaches only their own data and admin routes reject normal users.",
+                                 epilog="example:\n  ALICE_TOKEN=... BOB_TOKEN=... ADMIN_TOKEN=... authz_test.py authz.json --json authz.json.out\nexit code: 1 when any check fails.",
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("config", help="JSON config: base_url, users (headers with ${ENV} tokens), checks")
     ap.add_argument("--json", help="write findings JSON (merge into report.py with --authz)")
     ap.add_argument("--allow-remote", action="store_true", help="allow a non-local base_url you are authorized to test")
     ap.add_argument("--allow-destructive", action="store_true", help="allow DELETE checks")

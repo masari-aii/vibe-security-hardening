@@ -165,14 +165,16 @@ def digest(events, lang):
     return "\n".join(lines), s["total"]
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("logs", nargs="+")
-    ap.add_argument("--out", default="security-dashboard.html")
-    ap.add_argument("--days", type=int, default=30)
-    ap.add_argument("--brand", default="Security")
-    ap.add_argument("--lang", choices=["ar", "en"], default="ar")
-    ap.add_argument("--digest", action="store_true")
-    ap.add_argument("--send", action="store_true")
+    ap = argparse.ArgumentParser(description="Intrusion alerts dashboard (HTML) and daily digest from ALERT_LOG_FILE (JSON lines).",
+                                 epilog="examples:\n  alerts_dashboard.py alerts.jsonl --out dashboard.html --brand \"Masari AI\"\n  alerts_dashboard.py alerts.jsonl --digest --send",
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("logs", nargs="+", help="one or more JSONL log files (or logs containing [SECURITY] lines)")
+    ap.add_argument("--out", default="security-dashboard.html", help="output HTML file")
+    ap.add_argument("--days", type=int, default=30, help="how many days back to include (default: 30)")
+    ap.add_argument("--brand", default="Security", help="your company name shown at the top")
+    ap.add_argument("--lang", choices=["ar", "en"], default="ar", help="dashboard language (default: ar)")
+    ap.add_argument("--digest", action="store_true", help="print the last-24-hours summary instead of building the dashboard")
+    ap.add_argument("--send", action="store_true", help="with --digest: email it (ALERT_SMTP_HOST/PORT/USER/PASS, ALERT_TO, ALERT_FROM)")
     a = ap.parse_args()
     events = load(a.logs)
     if events:

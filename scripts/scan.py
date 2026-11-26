@@ -12,7 +12,7 @@ live headers, cookies, CORS, HTTPS and exposed paths. Secret values are never pr
 """
 import argparse, json, os, re, shutil, subprocess, sys, ssl, urllib.request, urllib.error
 
-VERSION = "3.1.0"
+VERSION = "3.1.1"
 SEV = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
 SKIP_DIRS = {".git", "node_modules", "vendor", "dist", "build", ".next", ".nuxt", ".output", "out", "coverage",
              "venv", ".venv", "env", "__pycache__", ".turbo", ".vercel", ".svelte-kit", "target", "bin", "obj", ".idea"}
@@ -446,13 +446,15 @@ def scan_url(url):
         add("P6", "low", "No /.well-known/security.txt", url)
 
 def main():
-    ap = argparse.ArgumentParser(description="vibe-security-hardening scanner")
-    ap.add_argument("path", nargs="?", default=".")
+    ap = argparse.ArgumentParser(description="vibe-security-hardening scanner: secrets, git history, dangerous code, RLS, infrastructure, dependencies and (with --url) your live site.",
+                                 epilog="examples:\n  scan.py ./my-app\n  scan.py ./my-app --url https://my-site.com --json scan.json\n  scan.py . --fix\n  scan.py . --fail-on high   (CI)\nexit code: 1 when a finding reaches --fail-on, else 0.",
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("path", nargs="?", default=".", help="project folder to scan (default: current folder)")
     ap.add_argument("--url", help="your own live site, e.g. https://example.com")
     ap.add_argument("--json", help="write JSON report to this file")
-    ap.add_argument("--fail-on", default="critical", choices=list(SEV))
-    ap.add_argument("--no-history", action="store_true")
-    ap.add_argument("--no-deps", action="store_true")
+    ap.add_argument("--fail-on", default="critical", choices=list(SEV), help="exit with code 1 if any finding has this severity or worse (default: critical)")
+    ap.add_argument("--no-history", action="store_true", help="skip the git history secret scan (faster)")
+    ap.add_argument("--no-deps", action="store_true", help="skip npm audit / pip-audit / composer audit")
     ap.add_argument("--no-infra", action="store_true", help="skip Docker/compose/nginx/k8s/terraform/CI checks")
     ap.add_argument("--deep", action="store_true", help="also run semgrep, gitleaks, trivy if installed")
     ap.add_argument("--fix", action="store_true", help="apply safe, non-destructive fixes and write review files to .security/")

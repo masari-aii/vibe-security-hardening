@@ -167,18 +167,20 @@ def to_pdf(html_path, pdf_path):
     return False
 
 def main():
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(description="Client-ready security report (HTML, optional PDF) from scan.py JSON.",
+                                 epilog="example:\n  report.py after.json --baseline before.json --authz authz.json.out --project \"Client\" --brand \"Masari AI\" --lang ar --pdf",
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("scan", help="scan.py JSON (current state)")
     ap.add_argument("--baseline", help="earlier scan JSON for before/after comparison")
     ap.add_argument("--authz", help="authz_test.py JSON to merge")
     ap.add_argument("--manual", help="manual findings JSON to merge")
-    ap.add_argument("--project", default="Web application")
-    ap.add_argument("--brand", default="Security report")
+    ap.add_argument("--project", default="Web application", help="project/client name shown in the report")
+    ap.add_argument("--brand", default="Security report", help="your company name shown at the top")
     ap.add_argument("--logo", help="logo file or URL")
-    ap.add_argument("--color", default="#2563eb", help="brand color")
-    ap.add_argument("--lang", choices=["ar", "en"], default="ar")
-    ap.add_argument("--out", default="security-report.html")
-    ap.add_argument("--pdf", action="store_true")
+    ap.add_argument("--color", default="#2563eb", help="brand color, e.g. \"#1d4ed8\"")
+    ap.add_argument("--lang", choices=["ar", "en"], default="ar", help="report language (default: ar, right-to-left)")
+    ap.add_argument("--out", default="security-report.html", help="output HTML file (default: security-report.html)")
+    ap.add_argument("--pdf", action="store_true", help="also write a PDF next to the HTML (needs Chrome/Chromium/Edge)")
     a = ap.parse_args()
     doc = load(a.scan)
     fs = list(findings_of(doc))
